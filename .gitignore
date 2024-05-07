@@ -1,0 +1,23 @@
+!Build/
+/MYMETA.*
+*.o
+*.pm.tdy
+*.bs
+*.old
+/*.gz
+
+# Devel::Cover
+cover_db/
+
+# Devel::NYTProf
+nytprof.out
+
+/.build/
+
+_build/
+Build
+Build.bat
+_build_params
+
+/blib/
+/pm_to_blib
