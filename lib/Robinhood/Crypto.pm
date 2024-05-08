@@ -10,7 +10,7 @@ package Robinhood::Crypto v1.0.0 {
         use JSON::Tiny qw[encode_json decode_json];
         use UUID::Tiny ':std';
         use Try::Tiny;
-        use Math::BigInt::GMP;    # https://github.com/FGasper/p5-Crypt-Perl/issues/12
+        #~ use Math::BigInt::GMP;    # https://github.com/FGasper/p5-Crypt-Perl/issues/12
         use Crypt::Perl::Ed25519::PrivateKey;
         use MIME::Base64 qw[decode_base64 encode_base64];
         use URI;

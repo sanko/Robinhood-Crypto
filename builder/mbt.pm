@@ -89,7 +89,8 @@ package builder::mbt v0.0.1 {    # inspired by Module::Build::Tiny 0.047
     sub Build_PL {
         my $meta = get_meta();
         printf "Creating new 'Build' script for '%s' version '%s'\n", $meta->name, $meta->version;
-        $cwd->child('Build')->spew( sprintf "#!%s -I%s\nuse %s;\n%s::Build();\n", $^X, $cwd->canonpath, __PACKAGE__, __PACKAGE__ );
+        printf "#!%s\nuse lib '%s', '.';\nuse %s;\n%s::Build();\n", $^X, $cwd->canonpath, __PACKAGE__, __PACKAGE__ ;
+        $cwd->child('Build')->spew( sprintf "#!%s\nuse lib '%s', '.';\nuse %s;\n%s::Build();\n", $^X, $cwd->canonpath, __PACKAGE__, __PACKAGE__ );
         make_executable('Build');
         my @env = defined $ENV{PERL_MB_OPT} ? split_like_shell( $ENV{PERL_MB_OPT} ) : ();
         $cwd->child('_build_params')->spew( encode_json( [ \@env, \@ARGV ] ) );
