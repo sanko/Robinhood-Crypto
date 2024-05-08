@@ -4,11 +4,12 @@ package Robinhood::Crypto v1.0.0 {
     no warnings 'experimental::class', 'experimental::builtin', 'experimental::for_list';    # Be quiet.
 
     class Robinhood::Crypto {
-        our @CARP_NOT;
+        $Carp::Internal{ (__PACKAGE__) }++;
         use MIME::Base64 qw[decode_base64 encode_base64];
         use HTTP::Tiny;
         use JSON::Tiny qw[encode_json decode_json];
         use UUID::Tiny ':std';
+        use Try::Tiny;
         use Math::BigInt::GMP;    # https://github.com/FGasper/p5-Crypt-Perl/issues/12
         use Crypt::Perl::Ed25519::PrivateKey;
         use MIME::Base64 qw[decode_base64 encode_base64];
@@ -77,7 +78,20 @@ package Robinhood::Crypto v1.0.0 {
             ddx \%args;
             my $res = $self->get( $uri->as_string );
             return $res unless $res;
-            $res->{results} = [ map { Robinhood::Crypto::Order->new(%$_) } @{ $res->{results} } ];
+
+            # Robinhood keeps changing what data is part of an order
+            $res->{results} = [
+                map {
+                    my $whoa = $_;
+                    try {
+                        Robinhood::Crypto::Order->new(%$_)
+                    }
+                    catch {
+                        Carp::cluck "caught error: $_";
+                        $whoa
+                    };
+                } @{ $res->{results} }
+            ];
             $res->{$_} = URI->new( $res->{$_} )->query_form_hash for qw[next previous];
             $res;
         }
@@ -136,7 +150,7 @@ package Robinhood::Crypto v1.0.0 {
     };
 
     class Robinhood::Crypto::Account {
-        our @CARP_NOT;
+        $Carp::Internal{ (__PACKAGE__) }++;
         field $account_number : param;
         field $status : param;
         field $buying_power : param;
@@ -154,6 +168,7 @@ package Robinhood::Crypto v1.0.0 {
     }
 
     class Robinhood::Crypto::Quote {
+        $Carp::Internal{ (__PACKAGE__) }++;
         use Time::Moment;
         #
         field $ask_price : param;
@@ -174,6 +189,7 @@ package Robinhood::Crypto v1.0.0 {
     };
 
     class Robinhood::Crypto::Price {
+        $Carp::Internal{ (__PACKAGE__) }++;
         use Time::Moment;
         #
         field $price : param;
@@ -196,6 +212,7 @@ package Robinhood::Crypto v1.0.0 {
     };
 
     class Robinhood::Crypto::Pair {
+        $Carp::Internal{ (__PACKAGE__) }++;
         field $asset_code : param;
         field $quote_code : param;
         field $quote_increment : param;
@@ -217,6 +234,7 @@ package Robinhood::Crypto v1.0.0 {
     };
 
     class Robinhood::Crypto::Holdings {
+        $Carp::Internal{ (__PACKAGE__) }++;
         field $account_number : param;
         field $asset_code : param;
         field $total_quantity : param;
@@ -230,6 +248,7 @@ package Robinhood::Crypto v1.0.0 {
     };
 
     class Robinhood::Crypto::Order {
+        $Carp::Internal{ (__PACKAGE__) }++;
         field $account_number : param;
         field $average_price : param;
         field $client_order_id : param;
@@ -250,9 +269,23 @@ package Robinhood::Crypto v1.0.0 {
         ADJUST {
             $created_at = $created_at =~ /T/ ? Time::Moment->from_string($created_at) : Time::Moment->from_epoch($created_at)
                 unless builtin::blessed $created_at;
-
-            # TODO: coerce executions
-            # TODO: make sure xxx_order_config matches order $type
+            $executions = [ map { builtin::blessed $_ ? $_ : Robinhood::Crypto::Order::Execution->new(%$_) } @$executions ];
+            if ( $type eq 'limit' ) {
+                $limit_order_config = Robinhood::Crypto::Order::LimitConfig->new(%$limit_order_config) unless builtin::blessed $limit_order_config;
+            }
+            elsif ( $type eq 'market' ) {
+                $market_order_config = Robinhood::Crypto::Order::MarketConfig->new(%$market_order_config)
+                    unless builtin::blessed $market_order_config;
+            }
+            elsif ( $type eq 'stop_limit' ) {
+                $stop_limit_order_config = Robinhood::Crypto::Order::StopLimitConfig->new(%$stop_limit_order_config)
+                    unless builtin::blessed $stop_limit_order_config;
+            }
+            elsif ( $type eq 'stop_loss' ) {
+                $stop_loss_order_config = Robinhood::Crypto::Order::StopLossConfig->new(%$stop_loss_order_config)
+                    unless builtin::blessed $stop_loss_order_config;
+            }
+            else { Carp::confess 'Unknown order type: ' . $type }
             $updated_at = $updated_at =~ /T/ ? Time::Moment->from_string($updated_at) : Time::Moment->from_epoch($updated_at)
                 unless builtin::blessed $updated_at;
         }
@@ -261,6 +294,7 @@ package Robinhood::Crypto v1.0.0 {
     };
 
     class Robinhood::Crypto::Order::Execution {
+        $Carp::Internal{ (__PACKAGE__) }++;
         field $effective_price : param;
         field $quantity : param;
         field $timestamp : param;
@@ -270,7 +304,38 @@ package Robinhood::Crypto v1.0.0 {
         }
     };
 
+    class Robinhood::Crypto::Order::MarketConfig {
+        $Carp::Internal{ (__PACKAGE__) }++;
+        field $asset_quantity : param;
+    };
+
+    class Robinhood::Crypto::Order::LimitConfig {
+        $Carp::Internal{ (__PACKAGE__) }++;
+        field $quote_amount : param;
+        field $asset_quantity : param;
+        field $limit_price : param;
+        field $time_in_force : param;
+    };
+
+    class Robinhood::Crypto::Order::StopLossConfig {
+        $Carp::Internal{ (__PACKAGE__) }++;
+        field $quote_amount : param;
+        field $asset_quantity : param;
+        field $stop_price : param;
+        field $time_in_force : param;
+    };
+
+    class Robinhood::Crypto::Order::StopLimitConfig {
+        $Carp::Internal{ (__PACKAGE__) }++;
+        field $quote_amount : param;
+        field $asset_quantity : param;
+        field $limit_price : param;
+        field $stop_price : param;
+        field $time_in_force : param;
+    };
+
     class Robinhood::Crypto::Error {
+        $Carp::Internal{ (__PACKAGE__) }++;
         use overload
             bool => sub { !1 },
             '""' => sub {
