@@ -111,6 +111,77 @@ package Robinhood::Crypto v1.0.0 {
             Robinhood::Crypto::Order->new(%$res);
         }
 
+        method limit_order( $side, $symbol, $quantity, $limit_price, $quote_amount, $time_in_force, $uuid //= () ) {
+            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
+            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
+            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
+            my %args = (
+                symbol             => $symbol,
+                side               => $side,
+                type               => 'limit',
+                limit_order_config =>
+                    { asset_quantity => $quantity, quote_amount => $quote_amount, limit_price => $limit_price, time_in_force => $time_in_force }
+            );
+
+            # I can fill in this blank.
+            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
+
+            #~ $uri->query_form_hash(%args);
+            ddx \%args;
+            my $res = $self->post( $uri->as_string, \%args );
+            return $res unless $res;
+            Robinhood::Crypto::Order->new(%$res);
+        }
+
+        method stop_loss_order( $side, $symbol, $quantity, $stop_price, $quote_amount, $time_in_force, $uuid //= () ) {
+            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
+            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
+            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
+            my %args = (
+                symbol             => $symbol,
+                side               => $side,
+                type               => 'stop_loss',
+                limit_order_config =>
+                    { asset_quantity => $quantity, quote_amount => $quote_amount, stop_price => $stop_price, time_in_force => $time_in_force }
+            );
+
+            # I can fill in this blank.
+            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
+
+            #~ $uri->query_form_hash(%args);
+            ddx \%args;
+            my $res = $self->post( $uri->as_string, \%args );
+            return $res unless $res;
+            Robinhood::Crypto::Order->new(%$res);
+        }
+
+        method stop_limit_order( $side, $symbol, $quantity, $stop_price, $limit_price, $quote_amount, $time_in_force, $uuid //= () ) {
+            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
+            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
+            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
+            my %args = (
+                symbol             => $symbol,
+                side               => $side,
+                type               => 'stop_limit',
+                limit_order_config => {
+                    asset_quantity => $quantity,
+                    quote_amount   => $quote_amount,
+                    stop_price     => $stop_price,
+                    limit_price    => $limit_price,
+                    time_in_force  => $time_in_force
+                }
+            );
+
+            # I can fill in this blank.
+            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
+
+            #~ $uri->query_form_hash(%args);
+            ddx \%args;
+            my $res = $self->post( $uri->as_string, \%args );
+            return $res unless $res;
+            Robinhood::Crypto::Order->new(%$res);
+        }
+
         method cancel_order($id) {
             my $uri = URI->new( sprintf '/api/v1/crypto/trading/orders/%s/cancel/', $id );
             my $res = $self->post( $uri->as_string );
