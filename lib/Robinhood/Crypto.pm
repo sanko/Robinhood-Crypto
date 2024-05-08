@@ -111,6 +111,12 @@ package Robinhood::Crypto v1.0.0 {
             Robinhood::Crypto::Order->new(%$res);
         }
 
+        method cancel_order($id) {
+            my $uri = URI->new( sprintf '/api/v1/crypto/trading/orders/%s/cancel/', $id );
+            my $res = $self->post( $uri->as_string );
+            $res;    # returns plain text on succes according to docs
+        }
+
         # Utils
         method get( $path, $timestamp //= time ) {
             my $res = $http->get(
