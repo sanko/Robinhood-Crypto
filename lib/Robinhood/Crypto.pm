@@ -96,6 +96,7 @@ package Robinhood::Crypto v1.0.0 {
             $res;
         }
 
+        # TODO: Buy with a dollar amount
         method market_order( $side, $symbol, $quantity, $uuid //= () ) {
             Carp::croak 'Order side must be "buy" or "sell"' unless $side =~ m[^buy|sell$];
             my $uri  = URI->new('/api/v1/crypto/trading/orders/');
