@@ -10,6 +10,7 @@ package Robinhood::Crypto v1.0.0 {
         use JSON::Tiny qw[encode_json decode_json];
         use UUID::Tiny ':std';
         use Try::Tiny;
+
         #~ use Math::BigInt::GMP;    # https://github.com/FGasper/p5-Crypt-Perl/issues/12
         use Crypt::Perl::Ed25519::PrivateKey;
         use MIME::Base64 qw[decode_base64 encode_base64];
@@ -45,7 +46,6 @@ package Robinhood::Crypto v1.0.0 {
             my $uri = URI->new('/api/v1/crypto/marketdata/estimated_price/');
             $uri->query_form_hash( symbol => $symbol, side => $side, quantity => $quantity );
             my $res = $self->get( $uri->as_string );
-            ddx $res;
             return $res unless $res;
             my $return;
             $return->{ $_->{symbol} }{ $_->{side} }{ $_->{quantity} } = Robinhood::Crypto::Price->new(%$_) for ( @{ $res->{results} } );
@@ -111,7 +111,7 @@ package Robinhood::Crypto v1.0.0 {
             Robinhood::Crypto::Order->new(%$res);
         }
 
-        method limit_order( $side, $symbol, $quantity, $limit_price, $quote_amount, $time_in_force, $uuid //= () ) {
+        method limit_order( $side, $symbol, $quantity, $limit_price, $time_in_force //= 'gtc', $uuid //= () ) {
             Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
             Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
             my $uri  = URI->new('/api/v1/crypto/trading/orders/');
@@ -119,56 +119,39 @@ package Robinhood::Crypto v1.0.0 {
                 symbol             => $symbol,
                 side               => $side,
                 type               => 'limit',
-                limit_order_config =>
-                    { asset_quantity => $quantity, quote_amount => $quote_amount, limit_price => $limit_price, time_in_force => $time_in_force }
-            );
-
-            # I can fill in this blank.
-            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
-
-            #~ $uri->query_form_hash(%args);
-            ddx \%args;
-            my $res = $self->post( $uri->as_string, \%args );
-            return $res unless $res;
-            Robinhood::Crypto::Order->new(%$res);
-        }
-
-        method stop_loss_order( $side, $symbol, $quantity, $stop_price, $quote_amount, $time_in_force, $uuid //= () ) {
-            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
-            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
-            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
-            my %args = (
-                symbol             => $symbol,
-                side               => $side,
-                type               => 'stop_loss',
-                limit_order_config =>
-                    { asset_quantity => $quantity, quote_amount => $quote_amount, stop_price => $stop_price, time_in_force => $time_in_force }
-            );
-
-            # I can fill in this blank.
-            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
-
-            #~ $uri->query_form_hash(%args);
-            ddx \%args;
-            my $res = $self->post( $uri->as_string, \%args );
-            return $res unless $res;
-            Robinhood::Crypto::Order->new(%$res);
-        }
-
-        method stop_limit_order( $side, $symbol, $quantity, $stop_price, $limit_price, $quote_amount, $time_in_force, $uuid //= () ) {
-            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
-            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
-            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
-            my %args = (
-                symbol             => $symbol,
-                side               => $side,
-                type               => 'stop_limit',
                 limit_order_config => {
                     asset_quantity => $quantity,
-                    quote_amount   => $quote_amount,
-                    stop_price     => $stop_price,
-                    limit_price    => $limit_price,
-                    time_in_force  => $time_in_force
+
+                    #~ quote_amount => $quote_amount,
+                    limit_price   => $limit_price,
+                    time_in_force => $time_in_force
+                }
+            );
+
+            # I can fill in this blank.
+            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
+
+            #~ $uri->query_form_hash(%args);
+            #~ ddx \%args;
+            my $res = $self->post( $uri->as_string, \%args );
+            return $res unless $res;
+            Robinhood::Crypto::Order->new(%$res);
+        }
+
+        method stop_loss_order( $side, $symbol, $quantity, $stop_price, $time_in_force, $uuid //= () ) {
+            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
+            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
+            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
+            my %args = (
+                symbol                 => $symbol,
+                side                   => $side,
+                type                   => 'stop_loss',
+                stop_loss_order_config => {
+                    asset_quantity => $quantity,
+
+                    #quote_amount => $quote_amount,
+                    stop_price    => $stop_price,
+                    time_in_force => $time_in_force
                 }
             );
 
@@ -177,6 +160,34 @@ package Robinhood::Crypto v1.0.0 {
 
             #~ $uri->query_form_hash(%args);
             ddx \%args;
+            my $res = $self->post( $uri->as_string, \%args );
+            return $res unless $res;
+            Robinhood::Crypto::Order->new(%$res);
+        }
+
+        method stop_limit_order( $side, $symbol, $quantity, $stop_price, $limit_price, $time_in_force, $uuid //= () ) {
+            Carp::croak 'Order side must be "buy" or "sell"'                  unless $side          =~ m[^buy|sell$];
+            Carp::croak 'Time-in-force must be "gtc", "gfd", "gfw", or "gfm"' unless $time_in_force =~ m[^gtc|gfd|gfw|gfm];
+            my $uri  = URI->new('/api/v1/crypto/trading/orders/');
+            my %args = (
+                symbol                  => $symbol,
+                side                    => $side,
+                type                    => 'stop_limit',
+                stop_limit_order_config => {
+                    asset_quantity => $quantity,
+
+                    #~ quote_amount   => $quote_amount,
+                    stop_price    => $stop_price,
+                    limit_price   => $limit_price,
+                    time_in_force => $time_in_force
+                }
+            );
+
+            # I can fill in this blank.
+            $args{client_order_id} = $uuid // uuid_to_string( create_uuid( UUID_MD5, rand(time) . encode_json \%args ) );
+
+            #~ $uri->query_form_hash(%args);
+            #~ ddx \%args;
             my $res = $self->post( $uri->as_string, \%args );
             return $res unless $res;
             Robinhood::Crypto::Order->new(%$res);
@@ -194,34 +205,33 @@ package Robinhood::Crypto v1.0.0 {
                 $base . $path,
                 { headers => { 'x-api-key' => $api_key, 'x-timestamp' => $timestamp, 'x-signature' => $self->sign( 'GET', $path, '', $timestamp ) } }
             );
-            return decode_json $res->{content} if $res->{success};
-            ddx decode_json $res->{content};
+            $res->{content} = decode_json $res->{content} if defined $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
+            return $res->{content} if $res->{success};
             return Robinhood::Crypto::Error->new(
                 status => $res->{status},
-                defined $res->{content} &&
-                    $res->{headers}{'content-type'} =~ m[application/json] ? %{ decode_json $res->{content} } : ( type => 'unknown', errors => [] )
+                ref $res->{content} eq 'HASH' ? %{ $res->{content} } : ( type => 'unknown', errors => [] )
             );
         }
 
         method post( $path, $args, $timestamp //= time ) {
             my $body = encode_json $args;
-            my $res  = $http->post(
+            my $res = $http->post(
                 $base . $path,
                 {   content => $body,
                     headers =>
                         { 'x-api-key' => $api_key, 'x-timestamp' => $timestamp, 'x-signature' => $self->sign( 'POST', $path, $body, $timestamp ) }
                 }
             );
-            return decode_json $res->{content} if $res->{success};
-            ddx decode_json $res->{content};
+            $res->{content} = decode_json $res->{content} if defined $res->{content} && $res->{headers}{'content-type'} =~ m[application/json];
+            return $res->{content}                        if $res->{success};
+            #~ ddx $res;
             return Robinhood::Crypto::Error->new(
                 status => $res->{status},
-                defined $res->{content} &&
-                    $res->{headers}{'content-type'} =~ m[application/json] ? %{ decode_json $res->{content} } : ( type => 'unknown', errors => [] )
+                ref $res->{content} eq 'HASH' ? %{ $res->{content} } : ( type => 'unknown', errors => [] )
             );
         }
 
-        method sign( $method, $path, $body //= '', $timestamp //= time ) {
+        method sign( $method, $path, $body, $timestamp ) {
             encode_base64( $private_key->sign( $api_key . $timestamp . $path . $method . ( ref $body ? encode_json($body) : $body ) ), '' );
         }
     };
@@ -326,6 +336,8 @@ package Robinhood::Crypto v1.0.0 {
 
     class Robinhood::Crypto::Order {
         $Carp::Internal{ (__PACKAGE__) }++;
+        use overload '""' => sub { shift->id };
+        #
         field $account_number : param;
         field $average_price : param;
         field $client_order_id : param;
@@ -368,6 +380,7 @@ package Robinhood::Crypto v1.0.0 {
         }
 
         # Waiting for perl 5.40...
+        method id() {$id}
     };
 
     class Robinhood::Crypto::Order::Execution {
@@ -383,32 +396,33 @@ package Robinhood::Crypto v1.0.0 {
 
     class Robinhood::Crypto::Order::MarketConfig {
         $Carp::Internal{ (__PACKAGE__) }++;
-        field $asset_quantity : param;
+        field $asset_quantity : param //= ();
+        field $quote_amount : param   //= ();    # Not in docs but found in my history
     };
 
     class Robinhood::Crypto::Order::LimitConfig {
         $Carp::Internal{ (__PACKAGE__) }++;
-        field $quote_amount : param;
+        field $quote_amount : param //= ();
         field $asset_quantity : param;
         field $limit_price : param;
-        field $time_in_force : param;
+        field $time_in_force : param //= ();
     };
 
     class Robinhood::Crypto::Order::StopLossConfig {
         $Carp::Internal{ (__PACKAGE__) }++;
-        field $quote_amount : param;
+        field $quote_amount : param //= ();
         field $asset_quantity : param;
         field $stop_price : param;
-        field $time_in_force : param;
+        field $time_in_force : param //= ();
     };
 
     class Robinhood::Crypto::Order::StopLimitConfig {
         $Carp::Internal{ (__PACKAGE__) }++;
-        field $quote_amount : param;
+        field $quote_amount : param //= ();
         field $asset_quantity : param;
         field $limit_price : param;
         field $stop_price : param;
-        field $time_in_force : param;
+        field $time_in_force : param //= ();
     };
 
     class Robinhood::Crypto::Error {
