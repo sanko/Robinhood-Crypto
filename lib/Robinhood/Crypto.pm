@@ -450,11 +450,16 @@ package Robinhood::Crypto v1.0.0 {
 
 =head1 NAME
 
-Robinhood::Crypto - Spankin' New Code
+Robinhood::Crypto - Wrapper for Robinhood's new Public Crypto API
 
 =head1 SYNOPSIS
 
     use Robinhood::Crypto;
+    my $rh = Robinhood::Crypto->new(
+        api_key     => 'abcdef12-3333-cccc-aaaa-000000000000',
+        private_key => 'jfkJKLfjsdi9oKofsdaj8fi9sdamifkooa00weafmioko0pIJkjJ890RH&98fJIOKMASDDFHAKDFhksljfppah=='
+    );
+    $rh->market_order( 'buy', 'ETH-USD', 0.1 );
 
 =head1 DESCRIPTION
 
