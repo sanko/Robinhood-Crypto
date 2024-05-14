@@ -465,6 +465,56 @@ Robinhood::Crypto - Wrapper for Robinhood's new Public Crypto API
 
 Robinhood::Crypto is brand new, baby!
 
+=head1 Methods
+
+Robinhood::Crypto makes use of perl's new class syntax.
+
+=head2 C<new( ... )>
+
+    my $rh = Robinhood::Crypto->new(
+        api_key     => 'abcdef12-3333-cccc-aaaa-000000000000',
+        private_key => 'jfkJKLfjsdi9oKofsdaj8fi9sdamifkooa00weafmioko0pIJkjJ890RH&98fJIOKMASDDFHAKDFhksljfppah=='
+    );
+
+This constructor expects the following arguments:
+
+=over
+
+=item C<api_key>
+
+To use the Crypto Trading API, you must visit the
+L<Robinhood API Credentials Portal|https://robinhood.com/account/crypto> to
+create credentials. After creating credentials, you will receive the API key
+associated with the credential. You can modify, disable, and delete credentials
+you created at any time.
+
+=item C<private_key>
+
+Private key paired with the public key submitted to Robinhood in the API key
+generation process.
+
+=back
+
+=head1 Rate Limits
+
+With their new API, Robinhood is allowing many more requests from clients. For
+now, managing rate limits is left up to you, but this may change as
+Robinhood::Crypto matures.
+
+See L<https://docs.robinhood.com/crypto/trading/#section/Rate-Limiting>.
+
+=head1 Error Responses
+
+On success, most Robinhood::Crypto methods return objects wrapping the data.
+When requests fail, a Robinhood::Crypto::Error object is generated and returned;
+these error objects have a false boolean value and stringifies for display so
+code such as:
+
+    my $order = $rh->limit_order('buy', 'BTC-USD', 1);
+    warn $order unless $order;
+
+...would print out the error (not enough cash, etc.).
+
 =head1 LICENSE
 
 This software is Copyright (c) 2024 by Sanko Robinson <sanko@cpan.org>.
