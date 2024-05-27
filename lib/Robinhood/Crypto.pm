@@ -495,6 +495,8 @@ generation process.
 
 =back
 
+=for docs https://docs.robinhood.com/crypto/trading/#tag/Account/operation/api_v1_crypto_trading_account_Details
+
 =head1 Rate Limits
 
 With their new API, Robinhood is allowing many more requests from clients. For
